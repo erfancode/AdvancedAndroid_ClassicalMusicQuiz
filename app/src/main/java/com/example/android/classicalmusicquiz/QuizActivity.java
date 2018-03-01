@@ -24,6 +24,8 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.media.session.MediaSessionCompat;
+import android.support.v4.media.session.PlaybackStateCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
@@ -64,6 +66,8 @@ public class QuizActivity extends AppCompatActivity implements View.OnClickListe
     private Button[] mButtons;
     private SimpleExoPlayer mExoPlayer;
     private SimpleExoPlayerView mPlayerView;
+    private MediaSessionCompat mMediaSession;
+    PlaybackStateCompat.Builder mStateBuilder;
 
 
     @Override
@@ -109,6 +113,7 @@ public class QuizActivity extends AppCompatActivity implements View.OnClickListe
         mButtons = initializeButtons(mQuestionSampleIDs);
 
         // TODO (1): Create a method to initialize the MediaSession. It should create the MediaSessionCompat object, set the flags for external clients, set the available actions you want to support, and start the session.
+        initialSession();
         // TODO (2): Create an inner class that extends MediaSessionCompat.Callbacks, and override the onPlay(), onPause(), and onSkipToPrevious() callbacks. Pass an instance of this class into the MediaSession.setCallback() method in the method you created in TODO 1.
         
         Sample answerSample = Sample.getSampleByID(this, mAnswerSampleID);
@@ -122,8 +127,40 @@ public class QuizActivity extends AppCompatActivity implements View.OnClickListe
         // Initialize the player.
         initializePlayer(Uri.parse(answerSample.getUri()));
     }
+    private void initialSession()
+    {
+        mMediaSession = new MediaSessionCompat(this, TAG);
+        mMediaSession.setFlags(MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS | MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS);
+        mMediaSession.setMediaButtonReceiver(null);
+        mStateBuilder = new PlaybackStateCompat.Builder()
+                .setActions(PlaybackStateCompat.ACTION_PLAY |
+                            PlaybackStateCompat.ACTION_PAUSE |
+                            PlaybackStateCompat.ACTION_PLAY_PAUSE |
+                            PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS);
+        mMediaSession.setPlaybackState(mStateBuilder.build());
+        mMediaSession.setCallback(new MySessionCallback());
+        mMediaSession.setActive(true);
+    }
+    private class MySessionCallback extends MediaSessionCompat.Callback
+    {
+        @Override
+        public void onPlay()
+        {
+            super.onPlay();
+        }
 
+        @Override
+        public void onPause()
+        {
+            super.onPause();
+        }
 
+        @Override
+        public void onSkipToPrevious()
+        {
+            super.onSkipToPrevious();
+        }
+    }
     /**
      * Initializes the button to the correct views, and sets the text to the composers names,
      * and set's the OnClick listener to the buttons.
@@ -269,6 +306,7 @@ public class QuizActivity extends AppCompatActivity implements View.OnClickListe
         // TODO (4): When the activity is destroyed, set the MediaSession to inactive.
         super.onDestroy();
         releasePlayer();
+        mMediaSession.setActive(false);
     }
 
     
@@ -291,9 +329,13 @@ public class QuizActivity extends AppCompatActivity implements View.OnClickListe
         if((playbackState == ExoPlayer.STATE_READY) && playWhenReady){
             // TODO (3): When ExoPlayer is playing, update the PlayBackState.
             Log.d(TAG, "onPlayerStateChanged: PLAYING");
+            mStateBuilder .setState(PlaybackStateCompat.STATE_PLAYING,
+                    mExoPlayer.getCurrentPosition(), 1f);
         } else if((playbackState == ExoPlayer.STATE_READY)){
             // TODO (3): When ExoPlayer is paused, update the PlayBackState.
             Log.d(TAG, "onPlayerStateChanged: PAUSED");
+            mStateBuilder .setState(PlaybackStateCompat.STATE_PAUSED,
+                    mExoPlayer.getCurrentPosition(), 1f);
         }
     }
 
